@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <title>Let's 機械語プログラミング</title>
+        <script>
+        var IMAGE_FILE_MACHINE_I386=0x14c;
+        var IMAGE_SUBSYSTEM_WINDOWS_GUI=2;
+        var IMAGE_SUBSYSTEM_WINDOWS_CUI=3;
+
+          var little_endian = true;
+          var IMAGE_DOS_HEADER_STUB=new Uint8Array(
+            [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00,
+             0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
+             0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+             0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+             0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+             0x0E, 0x1F, 0xBA, 0x0E, 0x00, 0xB4, 0x09, 0xCD,
+             0x21, 0xB8, 0x01, 0x4C, 0xCD, 0x21, 0x54, 0x68,
+             0x69, 0x73, 0x20, 0x70, 0x72, 0x6F, 0x67, 0x72,
+             0x61, 0x6D, 0x20, 0x63, 0x61, 0x6E, 0x6E, 0x6F,
+             0x74, 0x20, 0x62, 0x65, 0x20, 0x72, 0x75, 0x6E,
+             0x20, 0x69, 0x6E, 0x20, 0x44, 0x4F, 0x53, 0x20,
+             0x6D, 0x6F, 0x64, 0x65, 0x2E, 0x0D, 0x0D, 0x0A,
+             0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+             var IMAGE_NT_HEADERS32 = new Uint8Array(4+20);
+             var IMG_NT_HDR = new DataView(IMAGE_NT_HEADERS32.buffer);
+            setdv16(IMG_NT_HDR, 0/*Signature*/ , 0x4550);
+            setdv16(IMG_NT_HDR, 4/*Machine*/ , IMAGE_FILE_MACHINE_I386);
+            setdv16(IMG_NT_HDR, 6/*NumberOfSections*/ , 3);
+            setdv16(IMG_NT_HDR, 20/*SizeOfOptionalHeader*/ , 0x00E0);
+            setdv16(IMG_NT_HDR, 22/*Characteristics*/ , 0x010E);
+
+            var IMAGE_OPTIONAL_HEADER32 = new Uint8Array(96);
+            var IMG_OPT_HDR = new DataView(IMAGE_OPTIONAL_HEADER32.buffer);
+            setdv16(IMG_OPT_HDR, 0/*Magic*/ , 0x010B);
+            setdv32(IMG_OPT_HDR, 4/*SizeOfCode*/ , 0xFFFFFFFF);/*コードサイズ*/
+            setdv32(IMG_OPT_HDR, 8/*SizeOfInitializedData*/ , 0xFFFFFFFF);/*GLOBALデータサイズ*/
+            setdv32(IMG_OPT_HDR, 12/*SizeOfUninitializedData*/ , 0);
+            setdv32(IMG_OPT_HDR, 16/*AddressOfEntryPoint*/ , 0x00001000);
+            setdv32(IMG_OPT_HDR, 20/*BaseOfCode*/ , 0x00001000);
+            setdv32(IMG_OPT_HDR, 24/*BaseOfData*/ , 0xFFFFFFFF);/*データのベース*/
+            setdv32(IMG_OPT_HDR, 28/*ImageBase*/, 0x00400000);
+            setdv32(IMG_OPT_HDR, 32/*SectionAlignment*/, 0x00001000);
+            setdv32(IMG_OPT_HDR, 36/*FileAlignment*/, 0x00000200);
+
+            setdv16(IMG_OPT_HDR, 40/*MajorOperatingSystemVersion*/, 0x0004);/*windows4.0*/
+            setdv16(IMG_OPT_HDR, 42/*MinorOperatingSystemVersion*/, 0x0000);
+            setdv16(IMG_OPT_HDR, 44/*MajorImageVersion*/, 0x0000);
+            setdv16(IMG_OPT_HDR, 46/*MinorImageVersion*/, 0x0000);
+            setdv16(IMG_OPT_HDR, 48/*MajorSubsystemVersion*/, 0x0004);/*windows4.0*/
+            setdv16(IMG_OPT_HDR, 50/*MinorSubsystemVersion*/, 0x0000);
+
+            setdv32(IMG_OPT_HDR, 52/*Win32VersionValue*/, 0x00000000);
+            setdv32(IMG_OPT_HDR, 56/*SizeOfImage*/, 0xFFFFFFFF);
+            setdv32(IMG_OPT_HDR, 60/*SizeOfHeaders*/, 0x400);/*変更あれば変える*/
+            setdv32(IMG_OPT_HDR, 64/*CheckSum*/, 0);
+
+            setdv16(IMG_OPT_HDR, 68/*Subsystem*/, IMAGE_SUBSYSTEM_WINDOWS_GUI);
+            setdv16(IMG_OPT_HDR, 70/*DllCharacteristics*/, 0);
+
+            setdv32(IMG_OPT_HDR, 72/*SizeOfStackReserve*/, 0x00100000);
+            setdv32(IMG_OPT_HDR, 76/*SizeOfStackCommit*/,  0x00001000);
+            setdv32(IMG_OPT_HDR, 80/*SizeOfHeapReserve*/,  0x00100000);
+            setdv32(IMG_OPT_HDR, 84/*SizeOfHeapCommit*/,   0x00001000);
+
+            setdv32(IMG_OPT_HDR, 88/*LoaderFlags*/, 0);
+            setdv32(IMG_OPT_HDR, 92/*NumberOfRvaAndSizes*/, 16);
+
+            var IMAGE_DATA_DIRECTORYS = new Uint8Array(128);
+            var IMG_DAT_DIR = new DataView(IMAGE_DATA_DIRECTORYS.buffer);
+            setdv32(IMG_DAT_DIR, 8*1+0/*Import Table -> RVA*/, 0xFFFFFFFF);
+            setdv32(IMG_DAT_DIR, 8*1+4/*Import Table -> Size*/, 0xFFFFFFFF);
+            setdv32(IMG_DAT_DIR, 8*12+0/*Import Address Table(IAT) -> RVA*/, 0xFFFFFFFF);
+            setdv32(IMG_DAT_DIR, 8*12+4/*Import Address Table(IAT) -> Size*/, 0xFFFFFFFF);
+
+            var IMAGE_SECTION_HEADER_TEXT = new Uint8Array(40);
+            var IMG_SCT_HDR_T = new DataView(IMAGE_SECTION_HEADER_TEXT.buffer);
+            IMAGE_SECTION_HEADER_TEXT[0]=cc(".");
+            IMAGE_SECTION_HEADER_TEXT[1]=cc("t");
+            IMAGE_SECTION_HEADER_TEXT[2]=cc("e");
+            IMAGE_SECTION_HEADER_TEXT[3]=cc("x");
+            IMAGE_SECTION_HEADER_TEXT[4]=cc("t");
+            IMAGE_SECTION_HEADER_TEXT[5]=nullLetter();
+            IMAGE_SECTION_HEADER_TEXT[6]=nullLetter();
+            IMAGE_SECTION_HEADER_TEXT[7]=nullLetter();
+            setdv32(IMG_SCT_HDR_T, 8/*VirtualSize*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_T, 12/*VirtualAddress*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_T, 16/*SizeOfRawData*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_T, 20/*PointerToRawData*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_T, 24/*PointerToRelocations*/, 0);
+            setdv32(IMG_SCT_HDR_T, 28/*PointerToLinenumbers*/, 0);
+            setdv16(IMG_SCT_HDR_T, 32/*NumberOfRelocations*/, 0);
+            setdv16(IMG_SCT_HDR_T, 34/*NumberOfLinenumbers*/, 0);
+            setdv32(IMG_SCT_HDR_T, 36/*Characteristics*/, 0x60000020);
+
+            var IMAGE_SECTION_HEADER_RDATA = new Uint8Array(40);
+            var IMG_SCT_HDR_R = new DataView(IMAGE_SECTION_HEADER_RDATA.buffer);
+            IMAGE_SECTION_HEADER_RDATA[0]=cc(".");
+            IMAGE_SECTION_HEADER_RDATA[1]=cc("r");
+            IMAGE_SECTION_HEADER_RDATA[2]=cc("d");
+            IMAGE_SECTION_HEADER_RDATA[3]=cc("a");
+            IMAGE_SECTION_HEADER_RDATA[4]=cc("t");
+            IMAGE_SECTION_HEADER_RDATA[5]=cc("a");
+            IMAGE_SECTION_HEADER_RDATA[6]=nullLetter();
+            IMAGE_SECTION_HEADER_RDATA[7]=nullLetter();
+            setdv32(IMG_SCT_HDR_R, 8/*VirtualSize*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_R, 12/*VirtualAddress*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_R, 16/*SizeOfRawData*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_R, 20/*PointerToRawData*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_R, 24/*PointerToRelocations*/, 0);
+            setdv32(IMG_SCT_HDR_R, 28/*PointerToLinenumbers*/, 0);
+            setdv16(IMG_SCT_HDR_R, 32/*NumberOfRelocations*/, 0);
+            setdv16(IMG_SCT_HDR_R, 34/*NumberOfLinenumbers*/, 0);
+            setdv32(IMG_SCT_HDR_R, 36/*Characteristics*/, 0x40000040);
+
+            var IMAGE_SECTION_HEADER_DATA = new Uint8Array(40);
+            var IMG_SCT_HDR_D = new DataView(IMAGE_SECTION_HEADER_DATA.buffer);
+            IMAGE_SECTION_HEADER_DATA[0]=cc(".");
+            IMAGE_SECTION_HEADER_DATA[1]=cc("r");
+            IMAGE_SECTION_HEADER_DATA[2]=cc("d");
+            IMAGE_SECTION_HEADER_DATA[3]=cc("a");
+            IMAGE_SECTION_HEADER_DATA[4]=cc("t");
+            IMAGE_SECTION_HEADER_DATA[5]=cc("a");
+            IMAGE_SECTION_HEADER_DATA[6]=nullLetter();
+            IMAGE_SECTION_HEADER_DATA[7]=nullLetter();
+            setdv32(IMG_SCT_HDR_D, 8/*VirtualSize*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_D, 12/*VirtualAddress*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_D, 16/*SizeOfRawData*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_D, 20/*PointerToRawData*/, 0xFFFFFFFF);
+            setdv32(IMG_SCT_HDR_D, 24/*PointerToRelocations*/, 0);
+            setdv32(IMG_SCT_HDR_D, 28/*PointerToLinenumbers*/, 0);
+            setdv16(IMG_SCT_HDR_D, 32/*NumberOfRelocations*/, 0);
+            setdv16(IMG_SCT_HDR_D, 34/*NumberOfLinenumbers*/, 0);
+            setdv32(IMG_SCT_HDR_D, 36/*Characteristics*/, 0x400000C0);
+
+            var IMAGE_IMPORT_DESCRIPTOR = new Uint8Array(20);
+            var IMG_IMP_DSC = new DataView(IMAGE_IMPORT_DESCRIPTOR.buffer);
+            setdv32(IMG_IMP_DSC, 0/*OriginalFirstThunk*/, 0xFFFFFFFF);
+            setdv32(IMG_IMP_DSC, 4/*TimeDateStamp*/, 0);
+            setdv32(IMG_IMP_DSC, 8/*ForwarderChain*/, 0);
+            setdv32(IMG_IMP_DSC, 12/*Name*/, 0xFFFFFFFF);
+            setdv32(IMG_IMP_DSC, 16/*FirstThunk*/, 0xFFFFFFFF);
+
+
+
+          function CreateBinaries() {
+            var data = LoadCode()+nullLetter();
+            var a = new Uint32Array(1);
+            var letter;
+            var inputcode_size=data.length;
+
+            var mode_default = 0;
+            var mode_number = 1;
+            var mode_aZ_ = 2;
+            var mode = mode_default;
+            var num = 0;
+
+            for ( var cnt = 0; cnt < inputcode_size; cnt++){
+              letter = data.charCodeAt(cnt);
+              /*数字モード開始*/
+              if(mode == mode_default && letter0_9(letter)){
+                mode = mode_number;
+                num = 0;
+              }
+              if(mode == mode_number){
+                if(letter0_9(letter)){
+                  num *= 10;
+                  num += letter-cc("0");
+                }else{
+                  /*数字モード終了*/
+                  mode = mode_default
+                  a = new ArrayBuffer( num + 4);
+                  var data_view = new DataView(a);
+                  data_view.setInt32(num , num , little_endian);
+                }
+              }
+
+
+            }
+            var EXE_DATA =  joint(IMAGE_DOS_HEADER_STUB,
+                            joint(IMAGE_NT_HEADERS32,
+                            joint(IMAGE_OPTIONAL_HEADER32,
+                            joint(IMAGE_DATA_DIRECTORYS,
+                            joint(IMAGE_SECTION_HEADER_TEXT,
+                            joint(IMAGE_SECTION_HEADER_RDATA,
+                                  IMAGE_SECTION_HEADER_DATA
+                            ))))));
+            Download(EXE_DATA , "aaaa.exe.out", "application/octet-stream");
+          }
+          function joint(array1, array2){
+            var data = new Uint8Array(array1.length + array2.length);
+            for( var i = 0; i<array1.length; i++){
+              data[i] = array1[i];
+            }
+            for( var i = 0; i<array2.length; i++){
+              data[i+array1.length] = array2[i];
+            }
+            return data
+          }
+          function setdv8(dv,pos,num){
+            dv.setUint8(pos,num,little_endian);
+          }
+          function setdv16(dv,pos,num){
+            dv.setUint16(pos,num,little_endian);
+          }
+          function setdv32(dv,pos,num){
+            dv.setUint32(pos,num,little_endian);
+          }
+          function cc(letter){/*char code*/
+            return letter.charCodeAt(0)
+          }
+          function nullLetter(){
+            return String.fromCharCode(0)
+          }
+          function letter0_9(letter){
+            return letter >= cc("0") && letter <= cc("9");
+          }
+          function letter_azAZ_(letter){/*a z A Z _ */
+            return (letter >= cc("a") && letter <= cc("z")) ||
+              (letter >= cc("A") && letter <= cc("Z"))||
+              letter == cc("_");
+          }
+          function LoadCode(){
+            return  document.getElementById("inputcode").value
+          }
+          function Download(data, name, type){
+            var blob = new Blob([ data ], { "type" : type });
+            if (window.navigator.msSaveBlob) {
+              window.navigator.msSaveBlob(blob, name);
+              window.navigator.msSaveOrOpenBlob(blob, name);
+            } else {
+              document.getElementById("download").download = name;
+              document.getElementById("download").href = window.URL.createObjectURL(blob);
+            }
+          }
+        </script>
+        <style>
+          *{height:100%;width:100%;margin: 0;padding: 0;border: none;
+              font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+                YuGothic, "ヒラギノ角ゴ ProN W3", Hiragino Kaku Gothic ProN,
+                Arial, "メイリオ", Meiryo, sans-serif;
+              font-size: 14pt;
+              background-color: #FFF;
+              color: #000;
+              text-decoration: none;
+          }
+
+          .footer{
+              position: fixed;
+              bottom: 0;
+              width: 100%;
+              height: 70px;
+          }
+          .container {
+              width: 100%;
+              position: relative;
+              height: auto !important;
+              height: 100%;
+              min-height: 100%;
+          }
+          .content{
+            position: fixed;
+            bottom: 70px;
+            top:0;
+            width: 100%;
+            height: auto;
+          }
+          .content2{
+            box-sizing:border-box;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            padding-bottom: 0;
+          }
+          .footer2{
+            box-sizing:border-box;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+          }
+          #inputcode{
+            height:100%;width:100%;padding: 5px;
+            box-sizing:border-box;
+            border: solid 1px #777;
+            font-family: Consolas, 'Courier New', Courier, Monaco, monospace;
+            font-size: 14pt;
+          }
+          #inputcode:focus {
+            outline: 0;
+            border: solid 1px #27d;
+          }
+          #download:focus {
+            outline: 0;
+            border: solid 1px #27d;
+          }
+          #download{box-sizing: border-box;
+            display:block;
+            background-color: #DDD;
+            color: #000;
+            height:100%;width:200px;
+            border: solid 1px #555;
+            text-align: center;
+            vertical-align:middle;
+            line-height: 50px;
+          }
+          .footer2 a{margin-left: auto;}
+        </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="content">
+          <div class="content2">
+          <textarea id="inputcode"></textarea>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="footer2">
+            <a id="download" onclick="CreateBinaries()">バイナリ作成</a>
+          </div>
+        </div>
+      </div>
+    </body>
+</html>
