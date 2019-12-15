@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title></title>
+<meta charset="utf-8">
+<meta name="description" content="">
+<meta name="author" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script>
+let ScriptNameSpace = (function () { // private
+  /*
+  let NameSpace = (function () { "use strict"; // private
+    return { // public
+      // obj1 : objinner1,
+      // obj2 : objinner2,
+  };})(); // End of NameSpace
+  */
+
+  let MachineCodeConverter = (function () { "use strict"; // private
+
+
+    function addoutput(x){
+      let nl="";
+      if(document.getElementById("output_textarea").value!=""){nl="\n"}
+      document.getElementById("output_textarea").value = document.getElementById("output_textarea").value+nl+x+"";
+      let obj = document.getElementById("output_textarea");
+      if(!obj) return;
+      obj.scrollTop = obj.scrollHeight;
+    }
+    function CreateBinaries() {
+      let data = LoadCode()+nullLetter();
+      let inputcode_size=data.length;
+
+      let image_dos_header_stub = new WinPE.IMAGE_DOS_HEADER_STUB();
+      let image_nt_headers32 = new WinPE.IMAGE_NT_HEADERS32();
+
+
+      function token(name, type, data, param1) {
+
+          this.name = name;
+          this.type = type;
+          this.data = data;
+          this.param1 = param1;
+
+      }
+      let tokens=[];
+      let tmp_data=0;
+      let tmp_data2=0;
+      let exponent_sign=1;
+      let f_tmp_data=0;
+      let sign=1;
+      let c=0;
+      let machine_code=[];
+      let temp_str=""
+      let state="";
+      let seq="";
+      let floating_offset=0;
+      for(let i=0;i <inputcode_size;1){
+        let p=tokens.length;
+        for(let it=p-1; 0 <= it ;it--){
+          if(3<=it){
+            if( tokens[it-3].name=="semi-colon"&& tokens[it-2].name=="simbol"&& tokens[it-1].name=="at"&& tokens[it].name=="str"){
+              addoutput("外部関数呼出");
+              addoutput("function name :"+tokens[it-2].data);
+              addoutput("dll name :"+tokens[it].data);
+              tokens.pop();
+              tokens.pop();
+              tokens.pop();
+              tokens.pop();
+              it-=3;
+              continue;
+            }
+          }
+          if(1<=it){
+            if(tokens[it-1].name=="colon"&& tokens[it].name=="simbol"){
+              addoutput("ラベル使用　:"+tokens[it].data);
+              tokens.pop();
+              tokens.pop();
+              it-=1;
+              continue;
+            }
+          }
+          if(1<=it){
+            if(tokens[it-1].name=="colon2"&& tokens[it].name=="simbol"){
+              addoutput("ラベル定義　:"+tokens[it].data);
+              tokens.pop();
+              tokens.pop();
+              it-=1;
+              continue;
+            }
+          }
+          if(1<=it){
+            if(tokens[it-1].name=="semi-colon2"&& tokens[it].name=="simbol"){
+              addoutput("エクスポート関数定義　:"+tokens[it].data);
+              tokens.pop();
+              tokens.pop();
+              it-=1;
+              continue;
+            }
+          }
+          if(1<=it){
+            if(tokens[it-1].name=="dollar"&& tokens[it].name=="simbol"){
+              addoutput("グローバル要素使用　:"+tokens[it].data);
+              tokens.pop();
+              tokens.pop();
+              it-=1;
+              continue;
+            }
+          }
+          if(1<=it){
+            if(tokens[it-1].name=="dollar2"&& tokens[it].name=="simbol"){
+              addoutput("グローバル要素定義　:"+tokens[it].data);
+              tokens.pop();
+              tokens.pop();
+              it-=1;
+              continue;
+            }
+          }
+        }
+        let letter=cc(data[i]);
+        if(state=="" || state=="machine"){
+          if(letter09_af_AF(letter)){
+            state="machine";
+            //addoutput(state);
+            if(f_tmp_data==0){
+              tmp_data=letter09_af_AF2int(letter)*16;
+              f_tmp_data=1;
+            }else if(f_tmp_data==1){
+              tmp_data+=letter09_af_AF2int(letter);
+              f_tmp_data=0;
+              machine_code.push(tmp_data);
+            }
+          }else if(state!=""){
+            if(letter==cc(" ") || letter==cc("\n") || letter==cc("\r") ||letter==cc("\t") ){
+
+            }else{
+              if(f_tmp_data==1){
+                machine_code=[];
+                tmp_data=0;
+                state="";
+                addoutput("機械語リテラルエラー");
+              }else{
+                for(let it=0;it <machine_code.length;it++){
+                  //addoutput("it:"+it+" :"+machine_code[it]);
+                }
+
+                tokens.push(new token("machine-code", "datum", machine_code));
+                machine_code=[];
+                tmp_data=0;
+                state="";
+                continue;
+              }
+            }
+          }
+        }
+        /* 文字列リテラル */
+        if(state==""){
+          if(letter==cc("\"")){
+            temp_str="";
+            tmp_data=0;
+            state="str";
+          }
+        }else if(state=="str"){
+          if(seq==""){
+            if(letter==cc("\"")){
+              /* END */
+              seq="";
+              state="";
+              addoutput(temp_str);
+              tokens.push(new token("str", "string", temp_str));
+              i++;
+              continue;
+            }else if(letter==cc("\\")){
+              seq="esc";
+            }else if(letter==cc("\n")){
+            }else if(letter==cc("\r")){
+            }else if(letter==cc("\0")){
+              seq="";
+              state="";
+              addoutput("文字列リテラルエラー");
+            }else{
+              temp_str+=rcc(letter);
+            }
+          }else if(seq=="esc"){
+            if(letter==cc("\"")){
+              seq="";
+              temp_str+="\"";
+            }else if(letter==cc("\\")){
+              seq="";
+              temp_str+="\\";
+            }else if(letter==cc("t") || letter==cc("T")){
+              seq="";
+              temp_str+="\t";
+            }else if(letter==cc("n") || letter==cc("N")){
+              seq="";
+              temp_str+="\n";
+            }else if(letter==cc("r") || letter==cc("R")){
+              seq="";
+              temp_str+="\r";
+            }else if(letter==cc("0")){
+              seq="";
+              temp_str+="\0";
+            }else if(letter==cc("x")){
+              seq="esc2";
+            }else{
+              addoutput("エスケープシーケンス表記エラー");
+              seq="";
+              state="";
+            }
+          }else if(seq=="esc2"){
+            if(letter09_af_AF(letter)){
+              tmp_data=0;
+              tmp_data=letter09_af_AF2int(letter)*16;
+              seq="esc3";
+            }else{
+              addoutput("エスケープシーケンス表記エラー");
+              seq="";
+              state="";
+            }
+          }else if(seq=="esc3"){
+            if(letter09_af_AF(letter)){
+              tmp_data+=letter09_af_AF2int(letter);
+              temp_str+=rcc(tmp_data);
+              seq="";
+            }else{
+              addoutput("エスケープシーケンス表記エラー");
+              seq="";
+              state="";
+            }
+          }else{
+          }
+        }
+
+        /* コメント */
+        if(state==""){
+          if(letter==cc("/")){
+            state="comment";
+            seq="";
+            temp_str="";
+          }
+        }else if(state=="comment"){
+          if(seq==""){
+            if(letter==cc("*")){
+              seq="com1";
+            }else{
+              seq="";
+              state="";
+              addoutput("コメントエラー");
+            }
+          }else if(seq=="com1"){
+            if(letter==cc("*")){
+              seq="com2";
+            }else{
+              temp_str+=rcc(letter);
+            }
+          }else if(seq=="com2"){
+            if(letter==cc("/")){
+              /* END */
+              seq="";
+              state="";
+            }else if(letter==cc("*")){
+              seq="com2";
+              temp_str+="*";
+            }else{
+              seq="com1";
+              temp_str+="*";
+              temp_str+=rcc(letter);
+            }
+          }
+        }
+        /* 数 */
+        if(state==""){
+          if(letter==cc("+")){
+            sign=1;
+            state="number";
+            seq="";
+            tmp_data=0;
+            tmp_data2=0;
+            exponent_sign=1;
+            floating_offset=0;
+          }else if(letter==cc("-")){
+            sign=-1;
+            state="number";
+            seq="";
+            tmp_data=0;
+            tmp_data2=0;
+            exponent_sign=1;
+            floating_offset=0;
+          }
+        }else if(state=="number"){
+          if(seq==""){
+            if(letter0_9(letter)){
+              tmp_data=tmp_data*10;
+              tmp_data+=letter0_9int(letter);
+              seq="first";
+            }else if(letter==cc(".")){
+              state="float";
+              seq="upoint";
+            }else{
+                addoutput("数リテラルエラー");
+                state="";
+                seq="";
+                tmp_data=0;
+                continue;
+            }
+          }else if(seq=="first"){
+              if(letter0_9(letter)){
+                tmp_data=tmp_data*10;
+                tmp_data+=letter0_9int(letter);
+              }else if(letter==cc(".")){
+                state="float";
+                seq="upoint";
+              }else if(letter==cc("_")){
+                seq="byte";
+              }else if(letter==cc("e")){
+                state="float";
+                seq="exponent";
+              }else{
+                let aaa=sign*tmp_data
+                addoutput(aaa);
+                addoutput("_4");
+                tokens.push(new token("number", "int4", aaa));
+                state="";
+                seq="";
+                tmp_data=0;
+                continue;
+              }
+          }else if(seq=="byte"){
+            if(letter==cc("1")){
+              let aaa=sign*tmp_data
+              addoutput(aaa);
+              addoutput("_1");
+              tokens.push(new token("number", "int1", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+              i++;
+              continue;
+            }else if(letter==cc("2")){
+              let aaa=sign*tmp_data
+              addoutput(aaa);
+              addoutput("_2");
+              tokens.push(new token("number", "int2", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+              i++;
+              continue;
+            }else if(letter==cc("4")){
+              let aaa=sign*tmp_data
+              addoutput(aaa);
+              addoutput("_4");
+              tokens.push(new token("number", "int4", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+              i++;
+              continue;
+            }else{
+              addoutput("整数リテラルエラー");
+            }
+
+          }
+        }else if(state=="float"){
+          if(seq=="upoint"){
+            if(letter0_9(letter)){
+              tmp_data=tmp_data*10;
+              tmp_data+=letter0_9int(letter);
+              floating_offset--;
+            }else if(letter==cc("_")){
+              seq="byte";
+            }else if(letter==cc("e")){
+              seq="exponent";
+            }else if(letter_white_space(letter) || letter==cc("\0")){
+              let aaa=sign*tmp_data*Math.pow(10,floating_offset);
+              addoutput(aaa);
+              addoutput("_8");
+              tokens.push(new token("number", "float8", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+
+            }else{
+                addoutput("実数リテラルエラー");
+                state="";
+                seq="";
+                tmp_data=0;
+            }
+          }else if(seq=="byte"){
+            if(letter==cc("4")){
+              let aaa=sign*tmp_data*Math.pow(10,floating_offset+tmp_data2*exponent_sign);
+              addoutput(aaa);
+              addoutput("_4");
+              tokens.push(new token("number", "float4", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+              i++;
+              continue;
+            }else if(letter==cc("8")){
+              let aaa=sign*tmp_data*Math.pow(10,floating_offset+tmp_data2*exponent_sign);
+              addoutput(aaa);
+              addoutput("_8");
+              tokens.push(new token("number", "float8", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+              i++;
+              continue;
+            }else{
+              addoutput("実数リテラルエラー");
+              state="";
+              seq="";
+              tmp_data=0;
+            }
+            state="";
+            seq="";
+            tmp_data=0;
+          }else if(seq=="exponent"){
+            if(letter==cc("+")){
+              exponent_sign=1;
+              seq="exponent2";
+            }else if(letter==cc("-")){
+              exponent_sign=-1;
+              seq="exponent2";
+            }else{
+              seq="exponent1";
+              continue;
+            }
+          }else if(seq=="exponent1"){
+            if(letter0_9(letter)){
+              tmp_data2=tmp_data2*10;
+              tmp_data2+=letter0_9int(letter);
+            }else if(letter==cc("_")){
+              seq="byte";
+            }else if(letter_white_space(letter) || letter==cc("\0")){
+              let aaa=sign*tmp_data*Math.pow(10,floating_offset+tmp_data2*exponent_sign);
+              addoutput(aaa);
+              addoutput("_8");
+              tokens.push(new token("number", "float8", aaa));
+              state="";
+              seq="";
+              tmp_data=0;
+            }else{
+              addoutput("実数リテラルエラー");
+              state="";
+              seq="";
+              tmp_data=0;
+            }
+          }else if(seq=="exponent2"){
+            if(letter0_9(letter)!=true){
+              addoutput("実数リテラルエラー");
+              state="";
+              seq="";
+              tmp_data=0;
+            }else{
+              seq="exponent1";
+              continue;
+            }
+          }
+        }
+        /* $ $$ */
+        if(state==""){
+          if(letter==cc("$")){
+            state="dollar";
+            seq="";
+          }
+        }else if(state=="dollar"){
+          if(letter==cc("$")){
+            state="simbol";
+            seq="";
+            tokens.push(new token("dollar2"));
+            i++;
+            continue;
+          }else{
+            state="simbol";
+            seq="";
+            tokens.push(new token("dollar"));
+            continue;
+          }
+        }
+        /* : :: */
+        if(state==""){
+          if(letter==cc(":")){
+            state="colon";
+            seq="";
+          }
+        }else if(state=="colon"){
+          if(letter==cc(":")){
+            state="simbol";
+            seq="";
+            tokens.push(new token("colon2"));
+            i++;
+            continue;
+          }else{
+            state="simbol";
+            seq="";
+            tokens.push(new token("colon"));
+            continue;
+          }
+        }
+        /* ; ;; */
+        if(state==""){
+          if(letter==cc(";")){
+            state="semi-colon";
+            seq="";
+          }
+        }else if(state=="semi-colon"){
+          if(letter==cc(";")){
+            state="simbol";
+            seq="";
+            tokens.push(new token("semi-colon2"));
+            i++;
+            continue;
+          }else{
+            state="simbol";
+            seq="";
+            tokens.push(new token("semi-colon"));
+            continue;
+          }
+        }
+        /* @ */
+        if(state==""){
+          if(letter==cc("@")){
+            state="";
+            seq="";
+            tokens.push(new token("at"));
+          }
+        }
+        /* { */
+        if(state==""){
+          if(letter==cc("{")){
+            state="";
+            seq="";
+            tokens.push(new token("start-bracket"));
+          }
+        }
+        /* } */
+        if(state==""){
+          if(letter==cc("}")){
+            state="";
+            seq="";
+            tokens.push(new token("end-bracket"));
+          }
+        }
+        if(state=="simbol"){
+          if(letter_azAZ_(letter)){
+            state="simbol2";
+            seq="";
+            temp_str=rcc(letter);
+          }else{
+            addoutput("シンボルリテラルエラー");
+            state="";
+            seq="";
+            temp_str="";
+          }
+        }else if( state=="simbol2"){
+          if(seq==""){
+            if(letter_azAZ_(letter)||letter0_9(letter)){
+              temp_str+=rcc(letter);
+            }else{
+              tokens.push(new token("simbol","string",temp_str));
+              state="";
+              seq="";
+              temp_str="";
+              continue;
+            }
+          }else{
+
+          }
+        }
+        i++;
+      }
+      addoutput(JSON.stringify(tokens));
+      /*
+      650068"aaa"68"bbb"6500ff25;"aaaa"@"nnn"
+
+
+
+      */
+      image_nt_headers32.Machine = WinPE.IMAGE_FILE_MACHINE_I386;
+      image_nt_headers32.NumberOfSections = 3;
+      image_nt_headers32.SizeOfOptionalHeader = 224;
+      image_nt_headers32.Characteristics =
+       WinPE.IMAGE_FILE_32BIT_MACHINE | WinPE.IMAGE_FILE_EXECUTABLE_IMAGE |
+       WinPE.IMAGE_FILE_LINE_NUMS_STRIPPED | WinPE.IMAGE_FILE_LOCAL_SYMS_STRIPPED |
+       WinPE.IMAGE_FILE_RELOCS_STRIPPED;
+
+      let image_optional_header32 = new WinPE.IMAGE_OPTIONAL_HEADER32();
+      image_optional_header32.Magic = WinPE.IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+      image_optional_header32.SizeOfCode = 0xFFFFFFFF;
+      image_optional_header32.SizeOfInitializedData = 0xFFFFFFFF;
+      image_optional_header32.SizeOfUninitializedData = 0xFFFFFFFF;
+      image_optional_header32.AddressOfEntryPoint = 0xFFFFFFFF;
+      image_optional_header32.BaseOfCode = 0xFFFFFFFF;
+      image_optional_header32.BaseOfData = 0xFFFFFFFF;
+      image_optional_header32.ImageBase = WinPE.IMAGE_BASE_APPLICATION_DEFAULT;
+      image_optional_header32.FileAlignment = WinPE.MIN_FILE_ALIGNMENT;
+      image_optional_header32.SectionAlignment = image_optional_header32.FileAlignment;
+      /* must be SectionAlignment >= FileAlignment */
+      image_optional_header32.MajorOperatingSystemVersion = WinPE.MAJOR_OS_VER_WIN95_AND_LATER;
+      image_optional_header32.MinorOperatingSystemVersion = WinPE.MINOR_OS_VER_WIN95_AND_LATER;
+      image_optional_header32.MajorSubsystemVersion = WinPE.MAJOR_SUBSYSTEM_VER_WIN95_AND_LATER;
+      image_optional_header32.MinorSubsystemVersion = WinPE.MINOR_SUBSYSTEM_VER_WIN95_AND_LATER;
+      image_optional_header32.SizeOfImage = 0xFFFFFFFF;
+      image_optional_header32.SizeOfHeaders = 0xFFFFFFFF;
+      image_optional_header32.CheckSum = 0x0;
+      image_optional_header32.Subsystem = WinPE.IMAGE_SUBSYSTEM_WINDOWS_GUI;
+      image_optional_header32.DllCharacteristics = 0x0000;
+      image_optional_header32.SizeOfStackReserve = 0x00100000;
+      image_optional_header32.SizeOfStackCommit  = 0x00001000;
+      image_optional_header32.SizeOfHeapReserve  = 0x00100000;
+      image_optional_header32.SizeOfHeapCommit   = 0x00001000;
+      image_optional_header32.NumberOfRvaAndSizes = 16;
+
+      let image_data_directory = new WinPE.IMAGE_DATA_DIRECTORY();
+      image_data_directory.Export_table_RVA = 0xFFFFFFFFF;
+      image_data_directory.Export_table_Sizse = 0xFFFFFFFFF;
+      image_data_directory.Import_table_RVA = 0xFFFFFFFFF;
+      image_data_directory.Import_table_Sizse = 0xFFFFFFFFF;
+      image_data_directory.Resource_table_RVA = 0xFFFFFFFFF;
+      image_data_directory.Resource_table_Sizse = 0xFFFFFFFFF;
+      image_data_directory.Import_address_table_RVA = 0xFFFFFFFFF;
+      image_data_directory.Import_address_table_Sizse = 0xFFFFFFFFF;
+
+      let text_section = new WinPE.IMAGE_SECTION_HEADER();
+      text_section.Name = ".text";
+      text_section.VirtualSize = 0xFFFFFFFF;
+      text_section.VirtualAddress = 0xFFFFFFFF;
+      text_section.SizeOfRawData = 0xFFFFFFFF;
+      text_section.PointerToRawData = 0xFFFFFFFF;
+      text_section.Characteristics =
+        WinPE.IMAGE_SCN_CNT_CODE | WinPE.IMAGE_SCN_MEM_EXECUTE | WinPE.IMAGE_SCN_MEM_READ;
+
+      let rdata_section = new WinPE.IMAGE_SECTION_HEADER();
+      rdata_section.Name = ".rdata";
+      rdata_section.VirtualSize = 0xFFFFFFFF;
+      rdata_section.VirtualAddress = 0xFFFFFFFF;
+      rdata_section.SizeOfRawData = 0xFFFFFFFF;
+      rdata_section.PointerToRawData = 0xFFFFFFFF;
+      rdata_section.Characteristics =
+        WinPE.IMAGE_SCN_CNT_INITIALIZED_DATA | WinPE.IMAGE_SCN_MEM_READ;
+
+      let data_section = new WinPE.IMAGE_SECTION_HEADER();
+      data_section.Name = ".data";
+      data_section.VirtualSize = 0xFFFFFFFF;
+      data_section.VirtualAddress = 0xFFFFFFFF;
+      data_section.SizeOfRawData = 0xFFFFFFFF;
+      data_section.PointerToRawData = 0xFFFFFFFF;
+      data_section.Characteristics =
+        WinPE.IMAGE_SCN_CNT_INITIALIZED_DATA | WinPE.IMAGE_SCN_MEM_READ | WinPE.IMAGE_SCN_MEM_WRITE;
+
+      let rsrc_section = new WinPE.IMAGE_SECTION_HEADER();
+      rsrc_section.Name = ".rsrc";
+      rsrc_section.VirtualSize = 0xFFFFFFFF;
+      rsrc_section.VirtualAddress = 0xFFFFFFFF;
+      rsrc_section.SizeOfRawData = 0xFFFFFFFF;
+      rsrc_section.PointerToRawData = 0xFFFFFFFF;
+      rsrc_section.Characteristics =
+        WinPE.IMAGE_SCN_CNT_INITIALIZED_DATA | WinPE.IMAGE_SCN_MEM_READ;
+
+      let rsrc_dirc_ent = new WinPE.IMAGE_RESOURCE_DIRECTORY_ENTRY();
+      rsrc_dirc_ent.NameOffset        = 0x7fffffff;
+      rsrc_dirc_ent.NameIsString      = 0x1;
+      rsrc_dirc_ent.Name              = 0x00000000;
+      rsrc_dirc_ent.Id                = 0x0000;
+      rsrc_dirc_ent.OffsetToData      = 0x00000000;
+      rsrc_dirc_ent.OffsetToDirectory = 0x7fffffff;
+      rsrc_dirc_ent.DataIsDirectory   = 0x1;
+
+      // let EXE_DATA = rsrc_dirc_ent.data;
+      let EXE_DATA =""/*
+      joint(joint(joint(joint(joint(joint(joint(
+        image_dos_header_stub.data,
+        image_nt_headers32.data),
+        image_optional_header32.data),
+        image_data_directory.data),
+        text_section.data),
+        rdata_section.data),
+        data_section.data),
+        rsrc_section.data);*/
+      addoutput("Joint DATA");
+      //Download(EXE_DATA , "aaaa.exe.out", "application/octet-stream");
+    }
+
+    function onclicktrans(){
+    }
+    function cc(letter){/*char code*/
+      return letter.charCodeAt(0)
+    }
+    function nullLetter(){
+      return String.fromCharCode(0)
+    }
+    function rcc(num){
+      return String.fromCharCode(num)
+    }
+    function letter09_af_AF(letter){
+      return (letter >= cc("0") && letter <= cc("9")) ||
+        (letter >= cc("a") && letter <= cc("f")) ||
+        (letter >= cc("A") && letter <= cc("F"));
+    }
+    function letter09_af_AF2int(letter){
+      if(letter >= cc("0") && letter <= cc("9")){
+        return letter - cc("0");
+      }
+      if(letter >= cc("a") && letter <= cc("f")){
+        return letter - cc("a")+10;
+      }
+      if(letter >= cc("A") && letter <= cc("F")){
+        return letter - cc("A")+10;
+      }
+    }
+    function letter_white_space(letter){
+      return letter==cc(" ") || letter==cc("\n") || letter==cc("\r") ||letter==cc("\t");
+    }
+    function letter0_9(letter){
+      return letter >= cc("0") && letter <= cc("9");
+    }
+    function letter0_9int(letter){
+      return letter - cc("0");
+    }
+    function letter_azAZ_(letter){/*a z A Z _ */
+      return (letter >= cc("a") && letter <= cc("z")) ||
+        (letter >= cc("A") && letter <= cc("Z"))||
+        letter == cc("_");
+    }
+    function LoadCode(){
+      MyCodeMirror.cEditor.save();
+      MyCodeMirror.cEditor2.save();
+      return  document.getElementById("machinecode").value
+    }
+    function Download(data, name, type){
+      var blob = new Blob([ data ], { "type" : type });
+      if (window.navigator.msSaveBlob) {
+        window.navigator.msSaveBlob(blob, name);
+        window.navigator.msSaveOrOpenBlob(blob, name);
+      } else {
+        document.getElementById("download").download = name;
+        document.getElementById("download").href = window.URL.createObjectURL(blob);
+      }
+    }
+    /* ***************************************************************** */
+
+
+    /* ***************************************************************** */
+    return { // public
+        CreateBin: CreateBinaries,
+        trans: onclicktrans
+  };})(); // End of MachineCodeConverter
+
+  let std = (function () { "use strict"; // private
+  /* スタイルを動的指定 */
+  function SetStyle(obj,property,value){
+    obj.style.setProperty(property, value);
+  }
+  /* デフォルト引数を指定 */
+  function DefaultArg(argument, default_value){
+    if(argument==undefined){return(default_value);}else{return(argument);}
+  }
+  function MergeObj(obj1, obj2){
+    let obj3 = {};
+    for(let key in obj1){
+      obj3[key] = obj1[key];
+    }
+    for(let key in obj2){
+      obj3[key] = obj2[key];
+    }
+    return obj3;
+  }
+    return { // public
+      SetStyle : SetStyle,
+      DefaultArg : DefaultArg,
+      MergeObj : MergeObj,
+  };})(); // End of std
+
+  let OperateBinary = (function () { "use strict"; // private
+    let little_endian = true;
+    function joint(array1, array2){
+      let data = new Uint8Array(array1.length + array2.length);
+      for( let i = 0; i<array1.length; i++){
+        data[i] = array1[i];
+      }
+      for( let i = 0; i<array2.length; i++){
+        data[i+array1.length] = array2[i];
+      }
+      return data;
+    }
+    function setdv8(dv,pos,num){
+      dv.setUint8(pos,num);
+    }
+    function setdv16(dv,pos,num){
+      dv.setUint16(pos,num,little_endian);
+    }
+    function setdv32(dv,pos,num){
+      dv.setUint32(pos,num,little_endian);
+    }
+    function getdv8(dv,pos){
+      return dv.getUint8(pos);
+    }
+    function getdv16(dv,pos){
+      return dv.getUint16(pos,little_endian);
+    }
+    function getdv32(dv,pos){
+      return dv.getUint32(pos,little_endian);
+    }
+    function zeroOrMore(x){let y = x; if(y < 0){y = 0;}; return y;}
+    function lllloooo(o_size){return lShift(rShift(0xFFFFFFFF, o_size), o_size)}
+    function oooollll(l_size){return ~lllloooo(l_size);}
+    function llooooll(o_pos, o_size){
+      return (lllloooo(o_pos + o_size) | ( ~lShift(rShift(0xFFFFFFFF, o_pos), o_pos)));
+    }
+    function oolllloo(l_pos, l_size){return ~llooooll(l_pos, l_size);}
+    function rShift(a,b){
+      if(b<=0){return a;}
+      if(b>=32){return 0;}
+      return a >>> b;
+    }
+    function lShift(a,b){
+      if(b<=0){return a;}
+      if(b>=32){return 0;}
+      return a << b;
+    }
+    function setProperty(obj, property_name, offset, data_view, setfunc,
+      getfunc, val, bitfield_pos, bitfield_size){
+        val=std.DefaultArg(val, 0);
+        bitfield_pos=std.DefaultArg(bitfield_pos, 0);
+        bitfield_size=std.DefaultArg(bitfield_size, 32);
+      Object.defineProperty(obj, property_name, {
+        set: function (x) {
+          let y = x & oooollll(bitfield_size);
+          setfunc(data_view, offset, lShift(y, bitfield_pos) |
+          (getfunc(data_view, offset) & llooooll(bitfield_pos,bitfield_size)));
+        },
+        get: function () {
+          return rShift(getfunc(data_view, offset) &
+            oolllloo(bitfield_pos,bitfield_size), bitfield_pos);
+        }
+      } );
+      obj[property_name]=val;
+    }
+    function setProperty8(obj, property_name, offset, data_view,
+      val, bitfield_pos, bitfield_size){
+      val=std.DefaultArg(val, 0x00);
+      bitfield_pos=std.DefaultArg(bitfield_pos, 0);
+      bitfield_size=std.DefaultArg(bitfield_size, 8);
+      setProperty(obj, property_name, offset, data_view,
+        setdv8, getdv8, val, bitfield_pos, bitfield_size);
+    }
+    function setProperty16(obj, property_name, offset, data_view,
+      val, bitfield_pos, bitfield_size){
+      val=std.DefaultArg(val, 0x0000);
+      bitfield_pos=std.DefaultArg(bitfield_pos, 0);
+      bitfield_size=std.DefaultArg(bitfield_size, 16);
+      setProperty(obj, property_name, offset, data_view,
+        setdv16, getdv16, val, bitfield_pos, bitfield_size);
+    }
+    function setProperty32(obj, property_name, offset, data_view,
+      val, bitfield_pos, bitfield_size){
+      val=std.DefaultArg(val, 0x00000000);
+      bitfield_pos=std.DefaultArg(bitfield_pos, 0);
+      bitfield_size=std.DefaultArg(bitfield_size, 32);
+      setProperty(obj, property_name, offset, data_view,
+        setdv32, getdv32, val, bitfield_pos, bitfield_size);
+    }
+    return { // public
+      joint : joint,
+      setProperty8 :setProperty8,
+      setProperty16 : setProperty16,
+      setProperty32 : setProperty32,
+  };})(); // End of OperateBinary
+  let WinPE = (function () { "use strict"; // private
+  const constant={
+    /* IMAGE_NT_HEADERS32.Machine */
+    IMAGE_FILE_MACHINE_I386  : 0x014c,
+    IMAGE_FILE_MACHINE_IA64  : 0x0200,
+    IMAGE_FILE_MACHINE_AMD64 : 0x8664,
+
+    /* IMAGE_NT_HEADERS32.Characteristics */
+    IMAGE_FILE_RELOCS_STRIPPED         : 0x0001,
+    IMAGE_FILE_EXECUTABLE_IMAGE        : 0x0002,
+    IMAGE_FILE_LINE_NUMS_STRIPPED      : 0x0004,
+    IMAGE_FILE_LOCAL_SYMS_STRIPPED     : 0x0008,
+    IMAGE_FILE_AGGRESIVE_WS_TRIM       : 0x0010,
+    IMAGE_FILE_LARGE_ADDRESS_AWARE     : 0x0020,
+    IMAGE_FILE_BYTES_REVERSED_LO       : 0x0080,
+    IMAGE_FILE_32BIT_MACHINE           : 0x0100,
+    IMAGE_FILE_DEBUG_STRIPPED          : 0x0200,
+    IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP : 0x0400,
+    IMAGE_FILE_NET_RUN_FROM_SWAP       : 0x0800,
+    IMAGE_FILE_SYSTEM                  : 0x1000,
+    IMAGE_FILE_DLL                     : 0x2000,
+    IMAGE_FILE_UP_SYSTEM_ONLY          : 0x4000,
+    IMAGE_FILE_BYTES_REVERSED_HI       : 0x8000,
+
+    /* IMAGE_OPTIONAL_HEADER32.Magic */
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC : 0x010b,
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC : 0x020b,
+    IMAGE_ROM_OPTIONAL_HDR_MAGIC  : 0x0107,
+
+    /* IMAGE_OPTIONAL_HEADER32.ImageBase */
+    IMAGE_BASE_DLL_DEFAULT         : 0x10000000,
+    IMAGE_BASE_APPLICATION_DEFAULT : 0x00400000,
+    IMAGE_BASE_WINDOWS_CE          : 0x00010000,
+
+    /* IMAGE_OPTIONAL_HEADER32.FileAlignment */
+    MIN_FILE_ALIGNMENT : 0x00000200, /* 512B */
+    MAX_FILE_ALIGNMENT : 0x00010000, /* 64kB */
+
+    /* IMAGE_OPTIONAL_HEADER32.MajorOperatingSystemVersion */
+    /* IMAGE_OPTIONAL_HEADER32.MinorOperatingSystemVersion */
+    MAJOR_OS_VER_WIN95_AND_LATER    :  4,
+    MINOR_OS_VER_WIN95_AND_LATER    :  0,
+    MAJOR_OS_VER_WIN2000_AND_LATER  :  5,
+    MINOR_OS_VER_WIN2000_AND_LATER  :  0,
+    MAJOR_OS_VER_WINXP_AND_LATER    :  5,
+    MINOR_OS_VER_WINXP_AND_LATER    :  1,
+    MAJOR_OS_VER_WINVISTA_AND_LATER :  6,
+    MINOR_OS_VER_WINVISTA_AND_LATER :  0,
+    MAJOR_OS_VER_WIN7_AND_LATER     :  6,
+    MINOR_OS_VER_WIN7_AND_LATER     :  1,
+    MAJOR_OS_VER_WIN8_AND_LATER     :  6,
+    MINOR_OS_VER_WIN8_AND_LATER     :  2,
+    MAJOR_OS_VER_WIN8_1_AND_LATER   :  6,
+    MINOR_OS_VER_WIN8_1_AND_LATER   :  3,
+    MAJOR_OS_VER_WIN10_AND_LATER    : 10,
+    MINOR_OS_VER_WIN10_AND_LATER    :  0,
+
+    /* IMAGE_OPTIONAL_HEADER32.MajorSubsystemVersion */
+    /* IMAGE_OPTIONAL_HEADER32.MinorSubsystemVersion */
+    MAJOR_SUBSYSTEM_VER_WIN95_AND_LATER    :  4,
+    MINOR_SUBSYSTEM_VER_WIN95_AND_LATER    :  0,
+    MAJOR_SUBSYSTEM_VER_WIN2000_AND_LATER  :  5,
+    MINOR_SUBSYSTEM_VER_WIN2000_AND_LATER  :  0,
+    MAJOR_SUBSYSTEM_VER_WINXP_AND_LATER    :  5,
+    MINOR_SUBSYSTEM_VER_WINXP_AND_LATER    :  1,
+    MAJOR_SUBSYSTEM_VER_WINVISTA_AND_LATER :  6,
+    MINOR_SUBSYSTEM_VER_WINVISTA_AND_LATER :  0,
+    MAJOR_SUBSYSTEM_VER_WIN7_AND_LATER     :  6,
+    MINOR_SUBSYSTEM_VER_WIN7_AND_LATER     :  1,
+    MAJOR_SUBSYSTEM_VER_WIN8_AND_LATER     :  6,
+    MINOR_SUBSYSTEM_VER_WIN8_AND_LATER     :  2,
+    MAJOR_SUBSYSTEM_VER_WIN8_1_AND_LATER   :  6,
+    MINOR_SUBSYSTEM_VER_WIN8_1_AND_LATER   :  3,
+    MAJOR_SUBSYSTEM_VER_WIN10_AND_LATER    : 10,
+    MINOR_SUBSYSTEM_VER_WIN10_AND_LATER    :  0,
+
+    /* IMAGE_OPTIONAL_HEADER32.Subsystem */
+    IMAGE_SUBSYSTEM_UNKNOWN                  :  0,
+    IMAGE_SUBSYSTEM_NATIVE                   :  1,
+    IMAGE_SUBSYSTEM_WINDOWS_GUI              :  2,
+    IMAGE_SUBSYSTEM_WINDOWS_CUI              :  3,
+    IMAGE_SUBSYSTEM_OS2_CUI                  :  5,
+    IMAGE_SUBSYSTEM_POSIX_CUI                :  7,
+    IMAGE_SUBSYSTEM_WINDOWS_CE_GUI           :  9,
+    IMAGE_SUBSYSTEM_EFI_APPLICATION          : 10,
+    IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER  : 11,
+    IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER       : 12,
+    IMAGE_SUBSYSTEM_EFI_ROM                  : 13,
+    IMAGE_SUBSYSTEM_XBOX                     : 14,
+    IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION : 16,
+
+    /* IMAGE_OPTIONAL_HEADER32.DllCharacteristics */
+    IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE          : 0x0040,
+    IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY       : 0x0080,
+    IMAGE_DLLCHARACTERISTICS_NX_COMPAT             : 0x0100,
+    IMAGE_DLLCHARACTERISTICS_NO_ISOLATION          : 0x0200,
+    IMAGE_DLLCHARACTERISTICS_NO_SEH                : 0x0400,
+    IMAGE_DLLCHARACTERISTICS_NO_BIND               : 0x0800,
+    IMAGE_DLLCHARACTERISTICS_WDM_DRIVER            : 0x2000,
+    IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE : 0x8000,
+
+    /* IMAGE_SECTION_HEADER.Characteristics */
+    IMAGE_SCN_TYPE_NO_PAD            : 0x00000008,
+    IMAGE_SCN_CNT_CODE               : 0x00000020,
+    IMAGE_SCN_CNT_INITIALIZED_DATA   : 0x00000040,
+    IMAGE_SCN_CNT_UNINITIALIZED_DATA : 0x00000080,
+    IMAGE_SCN_LNK_OTHER              : 0x00000100,
+    IMAGE_SCN_LNK_INFO               : 0x00000200,
+    IMAGE_SCN_LNK_REMOVE             : 0x00000800,
+    IMAGE_SCN_LNK_COMDAT             : 0x00001000,
+    IMAGE_SCN_NO_DEFER_SPEC_EXC      : 0x00004000,
+    IMAGE_SCN_GPREL                  : 0x00008000,
+    IMAGE_SCN_MEM_PURGEABLE          : 0x00020000,
+    IMAGE_SCN_MEM_LOCKED             : 0x00040000,
+    IMAGE_SCN_MEM_PRELOAD            : 0x00080000,
+    IMAGE_SCN_ALIGN_1BYTES           : 0x00100000,
+    IMAGE_SCN_ALIGN_2BYTES           : 0x00200000,
+    IMAGE_SCN_ALIGN_4BYTES           : 0x00300000,
+    IMAGE_SCN_ALIGN_8BYTES           : 0x00400000,
+    IMAGE_SCN_ALIGN_16BYTES          : 0x00500000,
+    IMAGE_SCN_ALIGN_32BYTES          : 0x00600000,
+    IMAGE_SCN_ALIGN_64BYTES          : 0x00700000,
+    IMAGE_SCN_ALIGN_128BYTES         : 0x00800000,
+    IMAGE_SCN_ALIGN_256BYTES         : 0x00900000,
+    IMAGE_SCN_ALIGN_512BYTES         : 0x00A00000,
+    IMAGE_SCN_ALIGN_1024BYTES        : 0x00B00000,
+    IMAGE_SCN_ALIGN_2048BYTES        : 0x00C00000,
+    IMAGE_SCN_ALIGN_4096BYTES        : 0x00D00000,
+    IMAGE_SCN_ALIGN_8192BYTES        : 0x00E00000,
+    IMAGE_SCN_LNK_NRELOC_OVFL        : 0x01000000,
+    IMAGE_SCN_MEM_DISCARDABLE        : 0x02000000,
+    IMAGE_SCN_MEM_NOT_CACHED         : 0x04000000,
+    IMAGE_SCN_MEM_NOT_PAGED          : 0x08000000,
+    IMAGE_SCN_MEM_SHARED             : 0x10000000,
+    IMAGE_SCN_MEM_EXECUTE            : 0x20000000,
+    IMAGE_SCN_MEM_READ               : 0x40000000,
+    IMAGE_SCN_MEM_WRITE              : 0x80000000,
+
+    /* Resource Types */
+    RT_ACCELERATOR  :  9,
+    RT_ANICURSOR    : 21,
+    RT_ANIICON      : 22,
+    RT_BITMAP       :  2,
+    RT_CURSOR       :  1,
+    RT_DIALOG       :  5,
+    RT_DLGINCLUDE   : 17,
+    RT_FONT         :  7,
+    RT_GROUP_CURSOR : 1/*RT_CURSOR*/+11,
+    RT_ICON         :  3,
+    RT_GROUP_ICON   : 3/*RT_ICON*/+11,
+    RT_HTML         : 23,
+    RT_MANIFEST     : 24,
+    RT_MENU         :  4,
+    RT_MESSAGETABLE : 11,
+    RT_PLUGPLAY     : 19,
+    RT_RCDATA       : 10,
+    RT_STRING       :  6,
+    RT_VERSION      : 16,
+    RT_VXD          : 20,
+
+    /* culture identifier */
+    LCID_en_us      : 0x0409, /* English USA */
+    LCID_ja         : 0x0411, /* Japanese */
+  };
+
+    function IMAGE_DOS_HEADER_STUB(){
+      this.data = new Uint8Array(
+        [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00,
+         0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
+         0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+         0x0E, 0x1F, 0xBA, 0x0E, 0x00, 0xB4, 0x09, 0xCD,
+         0x21, 0xB8, 0x01, 0x4C, 0xCD, 0x21, 0x54, 0x68,
+         0x69, 0x73, 0x20, 0x70, 0x72, 0x6F, 0x67, 0x72,
+         0x61, 0x6D, 0x20, 0x63, 0x61, 0x6E, 0x6E, 0x6F,
+         0x74, 0x20, 0x62, 0x65, 0x20, 0x72, 0x75, 0x6E,
+         0x20, 0x69, 0x6E, 0x20, 0x44, 0x4F, 0x53, 0x20,
+         0x6D, 0x6F, 0x64, 0x65, 0x2E, 0x0D, 0x0D, 0x0A,
+         0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    }
+    function IMAGE_NT_HEADERS32(){
+      this.data = new Uint8Array(4+20);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty32(this, "Signature",             0, this.dv, 0x00004550);
+      OperateBinary.setProperty16(this, "Machine",               4, this.dv);
+      OperateBinary.setProperty16(this, "NumberOfSections",      6, this.dv);
+      OperateBinary.setProperty32(this, "TimeDateStamp",         8, this.dv);
+      OperateBinary.setProperty32(this, "PointerToSymbolTable", 12, this.dv);
+      OperateBinary.setProperty32(this, "NumberOfSymbols",      16, this.dv);
+      OperateBinary.setProperty16(this, "SizeOfOptionalHeader", 20, this.dv);
+      OperateBinary.setProperty16(this, "Characteristics",      22, this.dv);
+    }
+    function IMAGE_OPTIONAL_HEADER32(){
+      this.data = new Uint8Array(96);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty16(this, "Magic",                        0, this.dv);
+      OperateBinary.setProperty8( this, "MajorLinkerVersion",           2, this.dv);
+      OperateBinary.setProperty8( this, "MinorLinkerVersion",           3, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfCode",                   4, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfInitializedData",        8, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfUninitializedData",     12, this.dv);
+      OperateBinary.setProperty32(this, "AddressOfEntryPoint",         16, this.dv);
+      OperateBinary.setProperty32(this, "BaseOfCode",                  20, this.dv);
+      OperateBinary.setProperty32(this, "BaseOfData",                  24, this.dv);
+      OperateBinary.setProperty32(this, "ImageBase",                   28, this.dv);
+      OperateBinary.setProperty32(this, "SectionAlignment",            32, this.dv);
+      OperateBinary.setProperty32(this, "FileAlignment",               36, this.dv);
+      OperateBinary.setProperty16(this, "MajorOperatingSystemVersion", 40, this.dv);
+      OperateBinary.setProperty16(this, "MinorOperatingSystemVersion", 42, this.dv);
+      OperateBinary.setProperty16(this, "MajorImageVersion",           44, this.dv);
+      OperateBinary.setProperty16(this, "MinorImageVersion",           46, this.dv);
+      OperateBinary.setProperty16(this, "MajorSubsystemVersion",       48, this.dv);
+      OperateBinary.setProperty16(this, "MinorSubsystemVersion",       50, this.dv);
+      OperateBinary.setProperty32(this, "Win32VersionValue",           52, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfImage",                 56, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfHeaders",               60, this.dv);
+      OperateBinary.setProperty32(this, "CheckSum",                    64, this.dv);
+      OperateBinary.setProperty16(this, "Subsystem",                   68, this.dv);
+      OperateBinary.setProperty16(this, "DllCharacteristics",          70, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfStackReserve",          72, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfStackCommit",           76, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfHeapReserve",           80, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfHeapCommit",            84, this.dv);
+      OperateBinary.setProperty32(this, "LoaderFlags",                 88, this.dv);
+      OperateBinary.setProperty32(this, "NumberOfRvaAndSizes",         92, this.dv);
+    }
+    function IMAGE_DATA_DIRECTORY(){
+      this.data = new Uint8Array(4*2*16);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty32(this, "Export_table_RVA",                 0, this.dv);
+      OperateBinary.setProperty32(this, "Export_table_Size",                4, this.dv);
+      OperateBinary.setProperty32(this, "Import_table_RVA",                 8, this.dv);
+      OperateBinary.setProperty32(this, "Import_table_Size",               12, this.dv);
+      OperateBinary.setProperty32(this, "Resource_table_RVA",              16, this.dv);
+      OperateBinary.setProperty32(this, "Resource_table_Size",             20, this.dv);
+      OperateBinary.setProperty32(this, "Exception_table_RVA",             24, this.dv);
+      OperateBinary.setProperty32(this, "Exception_table_Size",            28, this.dv);
+      OperateBinary.setProperty32(this, "Certificate_table_RVA",           32, this.dv);
+      OperateBinary.setProperty32(this, "Certificate_table_Size",          36, this.dv);
+      OperateBinary.setProperty32(this, "Base_relocation_table_RVA",       40, this.dv);
+      OperateBinary.setProperty32(this, "Base_relocation_table_Size",      44, this.dv);
+      OperateBinary.setProperty32(this, "Debugging_information_RVA",       48, this.dv);
+      OperateBinary.setProperty32(this, "Debugging_information_Size",      52, this.dv);
+      OperateBinary.setProperty32(this, "Architecture_specific_data_RVA",  56, this.dv);
+      OperateBinary.setProperty32(this, "Architecture_specific_data_Size", 60, this.dv);
+      OperateBinary.setProperty32(this, "Global_pointer_RVA",              64, this.dv);
+      OperateBinary.setProperty32(this, "Global_pointer_Size",             68, this.dv);
+      /* must be Global_pointer_Size = 0 */
+      OperateBinary.setProperty32(this, "TLS_table_RVA",                   72, this.dv);
+      OperateBinary.setProperty32(this, "TLS_table_Size",                  76, this.dv);
+      OperateBinary.setProperty32(this, "Load_configuration_table_RVA",    80, this.dv);
+      OperateBinary.setProperty32(this, "Load_configuration_table_Size",   84, this.dv);
+      OperateBinary.setProperty32(this, "Bound_import_table_RVA",          88, this.dv);
+      OperateBinary.setProperty32(this, "Bound_import_table_Size",         92, this.dv);
+      OperateBinary.setProperty32(this, "Import_address_table_RVA",        96, this.dv);
+      OperateBinary.setProperty32(this, "Import_address_table_Size",      100, this.dv);
+      OperateBinary.setProperty32(this, "Delay_import_descriptor_RVA",    104, this.dv);
+      OperateBinary.setProperty32(this, "Delay_import_descriptor_Size",   108, this.dv);
+      OperateBinary.setProperty32(this, "CLR_header_RVA",                 112, this.dv);
+      OperateBinary.setProperty32(this, "CLR_header_Size",                116, this.dv);
+      OperateBinary.setProperty32(this, "Reserved_RVA",                   120, this.dv);
+      OperateBinary.setProperty32(this, "Reserved_Size",                  124, this.dv);
+
+
+    }
+
+    function IMAGE_SECTION_HEADER(){
+      this.data = new Uint8Array(40);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty8( this, "Name0",                 0, this.dv);
+      OperateBinary.setProperty8( this, "Name1",                 1, this.dv);
+      OperateBinary.setProperty8( this, "Name2",                 2, this.dv);
+      OperateBinary.setProperty8( this, "Name3",                 3, this.dv);
+      OperateBinary.setProperty8( this, "Name4",                 4, this.dv);
+      OperateBinary.setProperty8( this, "Name5",                 5, this.dv);
+      OperateBinary.setProperty8( this, "Name6",                 6, this.dv);
+      OperateBinary.setProperty8( this, "Name7",                 7, this.dv);
+      OperateBinary.setProperty32(this, "PhysicalAddress",       8, this.dv);
+      OperateBinary.setProperty32(this, "VirtualSize",           8, this.dv);
+      OperateBinary.setProperty32(this, "VirtualAddress",       12, this.dv);
+      OperateBinary.setProperty32(this, "SizeOfRawData",        16, this.dv);
+      OperateBinary.setProperty32(this, "PointerToRawData",     20, this.dv);
+      OperateBinary.setProperty32(this, "PointerToRelocations", 24, this.dv);
+      OperateBinary.setProperty32(this, "PointerToLinenumbers", 28, this.dv);
+      OperateBinary.setProperty16(this, "NumberOfRelocations",  32, this.dv);
+      OperateBinary.setProperty16(this, "NumberOfLinenumbers",  34, this.dv);
+      OperateBinary.setProperty32(this, "Characteristics",      36, this.dv);
+      Object.defineProperty(this, "_Name", {writable: true});
+      Object.defineProperty(this, "Name", {
+        set: function (x) {
+          this["_Name"] = "";
+          for( let i = 0; i < 9; i++){
+            let k = x.charCodeAt(i);
+            if(20 <= k && k <=126){/*ASCII CODE "space" to "tilde" */
+            }else{
+              k = 0;
+            }
+            if(i >= 8){
+              if(k != 0){alert("Illegal Section Name :"+x);}
+              break;
+            }
+          this["Name" + i] = k;
+          this["_Name"] = "" + this["_Name"] + String.fromCharCode(k);
+        }
+      },
+        get: function () { return this["_Name"];}
+      } );
+      this["Name"]="";
+    }
+    function IMAGE_IMPORT_DESCRIPTOR(){
+      this.data = new Uint8Array(4*5);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty32(this, "OriginalFirstThunk",  0, this.dv);
+      OperateBinary.setProperty32(this, "TimeDateStamp",       4, this.dv);
+      OperateBinary.setProperty32(this, "ForwarderChain",      8, this.dv);
+      OperateBinary.setProperty32(this, "Name",               12, this.dv);
+      OperateBinary.setProperty32(this, "FirstThunk",         16, this.dv);
+    }
+    function IMAGE_RESOURCE_DIRECTORY(){
+      this.data = new Uint8Array(4*2+2*4);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty32(this, "Characteristics",       0, this.dv);
+      OperateBinary.setProperty32(this, "TimeDateStamp",         4, this.dv);
+      OperateBinary.setProperty16(this, "MajorVersion",          8, this.dv);
+      OperateBinary.setProperty16(this, "MinorVersion",         10, this.dv);
+      OperateBinary.setProperty16(this, "NumberOfNamedEntries", 12, this.dv);
+      OperateBinary.setProperty16(this, "NumberOfIdEntries",    14, this.dv);
+    }
+
+    function IMAGE_RESOURCE_DIRECTORY_ENTRY(){
+      this.data = new Uint8Array(4*2);
+      this.dv = new DataView(this.data.buffer);
+
+      OperateBinary.setProperty32(this, "NameOffset",        0, this.dv, 0,  0, 31);
+      OperateBinary.setProperty32(this, "NameIsString",      0, this.dv, 0, 31,  1);
+      OperateBinary.setProperty32(this, "Name",              0, this.dv);
+      OperateBinary.setProperty16(this, "Id",                0, this.dv);
+      OperateBinary.setProperty32(this, "OffsetToData",      4, this.dv);
+      OperateBinary.setProperty32(this, "OffsetToDirectory", 4, this.dv, 0,  0, 31);
+      OperateBinary.setProperty32(this, "DataIsDirectory",   4, this.dv, 0, 31,  1);
+    }
+    constant
+    return std.MergeObj({ // public
+      IMAGE_DOS_HEADER_STUB : IMAGE_DOS_HEADER_STUB,
+      IMAGE_NT_HEADERS32 : IMAGE_NT_HEADERS32,
+      IMAGE_OPTIONAL_HEADER32 : IMAGE_OPTIONAL_HEADER32,
+      IMAGE_DATA_DIRECTORY : IMAGE_DATA_DIRECTORY,
+      IMAGE_SECTION_HEADER : IMAGE_SECTION_HEADER,
+      IMAGE_IMPORT_DESCRIPTOR : IMAGE_IMPORT_DESCRIPTOR,
+      IMAGE_RESOURCE_DIRECTORY : IMAGE_RESOURCE_DIRECTORY,
+      IMAGE_RESOURCE_DIRECTORY_ENTRY : IMAGE_RESOURCE_DIRECTORY_ENTRY,},
+      constant);
+})(); // End of WinPE
+  let TabSwitch = (function () { "use strict"; // private
+    window.addEventListener('load', function() {
+      let tab1 = document.getElementById("tab1");
+      let tab2 = document.getElementById("tab2");
+      let editor_text1 = document.getElementById("editor-text1");
+      let editor_text2 = document.getElementById("editor-text2");
+      std.SetStyle(editor_text2, "display", "none");
+
+      tab1.onmousedown = function() {
+        tab1.classList.remove( "tab_nonactive" );
+        tab2.classList.remove( "tab_active" );
+        tab2.classList.add( "tab_nonactive" );
+        tab1.classList.add( "tab_active" );
+        std.SetStyle(editor_text1, "display", "block");
+        std.SetStyle(editor_text2, "display", "none");
+      };
+
+      tab2.onmousedown = function() {
+      tab2.classList.remove( "tab_nonactive" );
+      tab2.classList.remove( "tab_active" );
+        tab1.classList.add( "tab_nonactive" );
+        tab2.classList.add( "tab_active" );
+        std.SetStyle(editor_text2, "display", "block");
+        std.SetStyle(editor_text1, "display", "none");
+      };
+      tab2.classList.remove( "tab_nonactive" );
+      tab2.classList.remove( "tab_active" );
+      tab1.classList.add( "tab_nonactive" );
+      tab2.classList.add( "tab_active" );
+      std.SetStyle(editor_text2, "display", "block");
+      std.SetStyle(editor_text1, "display", "none");
+    });
+    return { // public
+  };})(); // End of TabSwitch
+  let ResizeResult = (function () { "use strict"; // private
+    window.addEventListener('load', function() {
+      let elements = document.getElementsByClassName("padding-editor-result")[0];
+      let elements2 = document.getElementsByClassName("main-content1")[0];
+      //alert(elements2.style.gridTemplateRows);
+      let x;
+      let y;
+      let old_y=200;
+      let yy;
+
+      elements.addEventListener("mousedown", mdown, false);
+      elements.addEventListener("touchstart", mdown, false);
+
+      function mdown(e) {
+          //this.classList.add("drag");
+          if(e.type === "mousedown") {
+              let event = e;
+          } else {
+              let event = e.changedTouches[0];
+          }
+          x = event.pageX;
+          y = event.pageY;
+          document.body.addEventListener("mousemove", mmove, false);
+          document.body.addEventListener("touchmove", mmove, false);
+          document.body.addEventListener("mouseup", mup, false);
+          document.body.addEventListener("touchend", mup, false);
+          document.body.addEventListener("mouseleave", mup, false);
+          document.body.addEventListener("touchleave", mup, false);
+          //alert(x);
+
+      }
+      function mmove(e) {
+          //var drag = document.getElementsByClassName("drag")[0];
+          if(e.type === "mousemove") {
+              let event = e;
+          } else {
+              let event = e.changedTouches[0];
+          }
+          e.preventDefault();
+          yy= old_y-(event.pageY - y);
+          elements2.style.gridTemplateRows="10px 1fr 10px "+yy+"px 10px";
+          elements2.style.setProperty('-ms-grid-rows', "10px 1fr 10px "+yy+"px 10px");
+
+          let editorText = document.getElementsByClassName("editor-text")[0];
+          let editorText1 = document.getElementsByClassName("editor-text1")[0];
+          let editorText2 = document.getElementsByClassName("editor-text2")[0];
+
+          editorText1.style.width=editorText.getBoundingClientRect().width+"px";
+          editorText1.style.height=editorText.getBoundingClientRect().height+"px";
+          editorText2.style.width=editorText.getBoundingClientRect().width+"px";
+          editorText2.style.height=editorText.getBoundingClientRect().height+"px";
+
+      }
+      function mup(e) {
+          document.body.removeEventListener("mousemove", mmove, false);
+          document.body.removeEventListener("touchmove", mmove, false);
+
+          document.body.removeEventListener("mouseleave", mup, false);
+          document.body.removeEventListener("mouseup", mup, false);
+          document.body.removeEventListener("touchend", mup, false);
+          document.body.removeEventListener("touchleave", mup, false);
+          old_y=yy;
+      }
+    });
+    return { // public
+  };})(); // End of ResizeResult
+
+  let MyCodeMirror = (function () { "use strict"; // private
+    let cEditor,cEditor2;
+    window.addEventListener('load', function() {
+      MyCodeMirror.cEditor = CodeMirror.fromTextArea(document.getElementById("inputcode"), {
+        lineNumbers: true,
+        matchBrackets: true,
+        mode: "text/x-csrc"
+      });
+      let mac1 = CodeMirror.keyMap.default == CodeMirror.keyMap.macDefault;
+      CodeMirror.keyMap.default[(mac1 ? "Cmd" : "Ctrl") + "-Space"] = "autocomplete";
+      MyCodeMirror.cEditor.setSize("100%", "100%");
+
+      MyCodeMirror.cEditor2 = CodeMirror.fromTextArea(document.getElementById("machinecode"), {
+        lineNumbers: true,
+        matchBrackets: true,
+        mode: "text/x-csrc"
+      });
+
+      let mac2 = CodeMirror.keyMap.default == CodeMirror.keyMap.macDefault;
+      CodeMirror.keyMap.default[(mac2 ? "Cmd" : "Ctrl") + "-Space"] = "autocomplete";
+      MyCodeMirror.cEditor2.setSize("100%", "100%");
+
+      let editorText = document.getElementsByClassName("editor-text")[0];
+      let editorText1 = document.getElementsByClassName("editor-text1")[0];
+      let editorText2 = document.getElementsByClassName("editor-text2")[0];
+
+      editorText1.style.width=editorText.getBoundingClientRect().width+"px";
+      editorText1.style.height=editorText.getBoundingClientRect().height+"px";
+      editorText2.style.width=editorText.getBoundingClientRect().width+"px";
+      editorText2.style.height=editorText.getBoundingClientRect().height+"px";
+
+      window.addEventListener( 'resize', function() {
+
+        editorText1.style.width=editorText.getBoundingClientRect().width+"px";
+        editorText1.style.height=editorText.getBoundingClientRect().height+"px";
+        editorText2.style.width=editorText.getBoundingClientRect().width+"px";
+        editorText2.style.height=editorText.getBoundingClientRect().height+"px";
+      }, false );
+    });
+
+    return { // public
+      cEditor : cEditor,
+      cEditor2 : cEditor2,
+  };})(); // End of MyCodeMirror
+
+  return { // public
+      MachineCodeConverter : MachineCodeConverter
+};})(); // End of ScriptNameSpace
+
+</script>
+<style>
+
+abbr,address,article,aside,audio,b,blockquote,body,canvas,caption,cite,code,dd,
+del,details,dfn,div,dl,dt,em,fieldset,figcaption,figure,footer,form,h1,h2,h3,h4,
+h5,h6,header,hgroup,html,i,iframe,img,ins,kbd,label,legend,li,mark,menu,nav,
+object,ol,p,pre,q,samp,section,small,span,strong,sub,summary,sup,table,tbody,td,
+tfoot,th,thead,time,tr,ul,var,video{margin:0;padding:0;border:0;outline:0;
+font-size:100%;vertical-align:baseline;background:0 0}html{height:100%}body{
+line-height:1;height:100%}article,aside,details,figcaption,figure,footer,header,
+hgroup,menu,nav,section{display:block}nav ul{list-style:none}blockquote,q{quotes
+:none}blockquote:after,blockquote:before,q:after,q:before{content:'';content:
+none}a{margin:0;padding:0;font-size:100%;vertical-align:baseline;background:0 0}
+ins{background-color:#ff9;color:#000;text-decoration:none}mark{background-color:
+#ff9;color:#000;font-style:italic;font-weight:700}del{text-decoration:
+line-through}abbr[title],dfn[title]{border-bottom:1px dotted;cursor:help}table{
+border-collapse:collapse;border-spacing:0}hr{display:block;height:1px;border:0;
+border-top:1px solid #ccc;margin:1em 0;padding:0}input,select{vertical-align:
+middle}*,::after,::before{box-sizing:border-box}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  position: absolute;  /* またはfixed */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+}
+
+html,body{
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  font-family: sans-serif;
+  font-weight: 200;
+  font-size: 15px;
+  background-color: #FFF;
+  color: #000;
+  text-decoration: none;
+  cursor: default;
+  user-select: none; /* CSS3 */
+  -moz-user-select: none; /* Firefox */
+  -webkit-user-select: none; /* Safari、Chromeなど */
+  -ms-user-select: none; /* IE10かららしい */
+}
+body{
+  background-color: #5297C5
+/*hsl(calc(3.4*60),50%,55%)*/;
+}
+
+.grid1{
+  width: 100%;
+  height: 100%;
+  display: grid;
+  display: -ms-grid;
+  grid-template-rows: 30px 1fr 24px;
+  -ms-grid-rows: 30px 1fr 24px;
+  grid-template-columns: 1fr;
+  -ms-grid-columns: 1fr;
+}
+.main-content{
+  display: grid;
+  display: -ms-grid;
+  grid-template-columns: 6px 1fr 6px;
+  -ms-grid-columns: 6px 1fr 6px;
+  grid-template-rows: 1fr;
+  -ms-grid-rows: 1fr;
+  grid-row: 2;
+  -ms-grid-row: 2;
+
+}
+.padding-left{
+  grid-column: 1;
+  -ms-grid-column: 1;
+}
+.main-content1{
+  display: grid;
+  display: -ms-grid;
+  grid-template-rows: 6px 1fr 6px 200px 6px;
+  -ms-grid-rows: 6px 1fr 6px 200px 6px;
+  grid-template-columns: 1fr;
+  -ms-grid-columns: 1fr;
+  grid-column: 2;
+  -ms-grid-column: 2;
+}
+.padding-right{
+  grid-column: 3;
+  -ms-grid-column: 3;
+}
+.padding-top{
+  grid-row: 1;
+  -ms-grid-row: 1;
+}
+.editor{
+  display: grid;
+  display: -ms-grid;
+  grid-template-rows: 24px 3px 1fr;
+  -ms-grid-rows: 24px 3px 1fr;
+  grid-template-columns: 1fr;
+  -ms-grid-columns: 1fr;
+  grid-row: 2;
+  -ms-grid-row: 2;
+}
+.editor-tab{
+  display: grid;
+  display: -ms-grid;
+  grid-template-columns: 150px 3px 150px 1fr;
+  -ms-grid-columns: 150px 3px 150px 1fr;
+  grid-template-rows: 1fr;
+  -ms-grid-rows: 1fr;
+
+}
+.padding-editor-result{
+  grid-row: 3;
+  -ms-grid-row: 3;
+}
+.result{
+  display: grid;
+  display: -ms-grid;
+  grid-template-rows: 24px 24px 1fr;
+  -ms-grid-rows: 24px 24px 1fr;
+  grid-template-columns: 1fr;
+  -ms-grid-columns: 1fr;
+  grid-row: 4;
+  -ms-grid-row: 4;
+}
+.padding-bottom{
+  grid-row: 5;
+  -ms-grid-row: 5;
+}
+.toolbar{
+  padding: 1px;
+  background-color: #B2D1E5
+/*hsl(calc(3.4*60),50%,80%)*/;
+  display: grid;
+  display: -ms-grid;
+  grid-template-columns: 3px 30px 30px 1fr;
+  -ms-grid-columns: 3px 30px 30px 1fr;
+  grid-template-rows: 1fr;
+  -ms-grid-rows: 1fr;
+  grid-row: 1;
+  -ms-grid-row: 1;
+}
+.toolbar-left-padding{
+  grid-column: 1;
+  -ms-grid-column: 1;
+}
+.toolbar-tool1{
+  grid-column: 2;
+  -ms-grid-column: 2;
+}
+.toolbar-tool2{
+  grid-column: 3;
+  -ms-grid-column: 3;
+}
+.statusbar{
+  padding-top: 5px;
+  padding-left: 5px;
+  color:#EBF3F8
+/*hsl(calc(3.4*60),50%,95%)*/;
+  background-color: #256996
+/*hsl(calc(3.4*60),60%,37%)*/;
+  grid-row: 3;
+  -ms-grid-row: 3;
+}
+.tab_active{
+  padding-top: 7px;
+  padding-left:5px;
+  color:#2C2406
+/*hsl(calc(0.8*60),75%,10%)*/;
+  background-color: #EFDB8F
+/*hsl(calc(0.8*60),75%,75%)*/;
+  border-top: none;
+
+}
+#tab1{
+  grid-column: 1;
+  -ms-grid-column: 1;
+}
+.padding-tabs{
+  grid-column: 2;
+  -ms-grid-column: 2;
+}
+.tab_nonactive{
+  padding-top: 4px;
+  padding-left: 5px;
+  color:#EBF3F8
+/*hsl(calc(3.4*60),50%,95%)*/;
+  background-color:  #256996
+/*hsl(calc(3.4*60),60%,37%)*/;
+  border-top: solid 3px  #5297C5
+/*hsl(calc(3.4*60),50%,55%)*/;
+}
+#tab2{
+  grid-column: 3;
+  -ms-grid-column: 3;
+}
+.tab-space{
+  grid-column: 4;
+  -ms-grid-column: 4;
+}
+.tab_nonactive:hover{
+  padding-top: 4px;
+  padding-left: 5px;
+  color:#165782
+/*hsl(calc(3.4*60),70%,30%)*/;
+  background-color: #84BBE0
+/*hsl(calc(3.4*60),60%,70%)*/;
+  border-top: solid 3px #5297C5
+/*hsl(calc(3.4*60),50%,55%)*/;
+}
+.editor-tab{
+  grid-row: 1;
+  -ms-grid-row: 1;
+}
+.tab-padding{
+  background-color: #EFDB8F
+/*hsl(calc(0.8*60),75%,75%)*/;
+  grid-row: 2;
+  -ms-grid-row: 2;
+}
+.editor-text{
+  background-color: #fff;
+  width: 100%;
+  height: 100%;
+  grid-row: 3;
+  -ms-grid-row: 3;
+}
+.result-titlebar{
+  padding-top: 5px;
+  padding-left: 5px;
+  color:#EBF3F8;
+  /*hsl(calc(3.4*60),50%,95%)*/
+  background-color:   #256996
+/*hsl(calc(3.4*60),60%,37%)*/;
+  grid-row: 1;
+  -ms-grid-row: 1;
+}
+.result-toolbar{
+  background-color: #B2D1E5
+/*hsl(calc(3.4*60),50%,80%)*/;
+  grid-row: 2;
+  -ms-grid-row: 2;
+}
+.result-text{
+  background-color: #FFF;
+  grid-row: 3;
+  -ms-grid-row: 3;
+}
+.padding-editor-result{
+  cursor: ns-resize;
+}
+.editor-text1{
+  position: absolute;
+  background-color: #fff;
+}
+.editor-text2{
+  position: absolute;
+  background-color: #fff;
+
+}
+.result-text2{
+  width: 100%;
+  height: 100%;
+}
+.svg_start{
+fill:#1A971A;
+/*hsl(calc(2*60),70%,35%)*/
+}
+.svg_save{
+fill:#2272C3;
+/*hsl(calc(2*60),70%,35%)*/
+}
+.toolbar-tool{
+  width:28px;
+  height:28px;
+  border: solid 1px #B2D1E5;
+  /*hsl(calc(3.4*60),50%,80%);*/
+}
+.toolbar-tool:hover{
+  border: solid 1px #97C1DC;
+  /*hsl(calc(3.4*60),50%,73%);*/
+  background-color: #CDE1EE;
+  /*hsl(calc(3.4*60),50%,87%);*/
+}
+.toolbar-tool:active{
+  border: solid 1px #79AED2;
+  /*hsl(calc(3.4*60),50%,65%);*/
+  background-color: #EBF3F8;
+  /*hsl(calc(3.4*60),50%,95%);*/
+}
+</style>
+
+<link rel="stylesheet" href="codemirror.css">
+<script src="codemirror.js"></script>
+<script src="matchbrackets.js"></script>
+<link rel="stylesheet" href="show-hint.css">
+<script src="show-hint.js"></script>
+<script src="clike.js"></script>
+
+<style>
+textarea{
+  box-sizing: border-box;
+  padding: 5px;
+  resize: none;
+  width: 100%;
+  height: 100%;
+  font-family: Consolas, "Courier New", Courier, Monaco, "ＭＳ ゴシック", "MS Gothic", "Osaka−等幅",monospace;
+  border: none;
+  font-size: 1rem;
+  outline: 0;
+  line-height:1.5;
+}
+.inputcode{
+  position:absolute;
+}
+.CodeMirror {
+  box-sizing: border-box;
+  font-family: Consolas, "Courier New", Courier, Monaco, "ＭＳ ゴシック", "MS Gothic", "Osaka−等幅",monospace;
+  font-size: 1rem;
+  outline: 0;
+  resize: none;
+  line-height:1.5;
+}
+</style>
+</head>
+<body>
+  <svg display="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+      <symbol id="start" viewBox="0 0 16 16">
+        <path d="m4 2v12l8-6z" />
+      </symbol>
+      <symbol id="save" viewBox="0 0 16 16">
+        <path d="m2 2v12h12v-9l-3-3v6h-6v-6h-3zm6 0v3h2v-3h-2z" />
+      </symbol>
+    </defs>
+  </svg>
+  <div class="grid1">
+    <div class="toolbar">
+      <div class="toolbar-left-padding"></div>
+      <div class="toolbar-tool toolbar-tool1" onclick="ScriptNameSpace.MachineCodeConverter.trans()">
+        <svg x="0" y="0" width="26px" height="26px" viewBox="0 0 16 16">
+        <use class="svg_save" xlink:href="#save"></use>
+        </svg>
+      </div>
+      <div class="toolbar-tool toolbar-tool2">
+        <a  id="download" onclick="ScriptNameSpace.MachineCodeConverter.CreateBin()">
+          <svg x="0" y="0" width="26px" height="26px" viewBox="0 0 16 16">
+          <use class="svg_start" xlink:href="#start"></use>
+          </svg>
+        </a>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="padding-left"></div>
+      <div class="main-content1">
+        <div class="padding-top"></div>
+        <div class="editor">
+          <div class="editor-tab">
+            <div class="tab_active" id="tab1">Code</div>
+            <div class="padding-tabs"></div>
+            <div class="tab_nonactive" id="tab2">Machine Code</div>
+            <div class="tab-space"></div>
+          </div>
+          <div class="tab-padding"></div>
+          <div class="editor-text">
+            <div class="editor-text1" id="editor-text1"><textarea id="inputcode" class="inputcode"></textarea></div>
+            <div class="editor-text2" id="editor-text2"><textarea id="machinecode" class="inputcode">6A 00 68 "Hello, World!" 68 "" 6A 00 FF15 ;MessageBoxA@"user32.dll" C3
+            </textarea></div>
+          </div>
+        </div>
+        <div class="padding-editor-result"></div>
+        <div class="result">
+          <div class="result-titlebar">Result</div>
+          <div class="result-toolbar"></div>
+          <div class="result-text"><div class="result-text2"><textarea id="output_textarea"></textarea></div></div>
+        </div>
+        <div class="padding-bottom"></div>
+      </div>
+      <div class="padding-right"></div>
+    </div>
+    <div class="statusbar">Status</div>
+  </div>
+</body>
+</html>
